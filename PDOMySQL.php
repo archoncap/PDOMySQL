@@ -44,7 +44,7 @@ class PDOMySQL
      * @var string|int 
      */
     private $cfg_limit = NULL;
-
+	private $cfg_order = NULL;
     /**
      * Column fields to fetch from table.
      * 
@@ -120,6 +120,10 @@ class PDOMySQL
         $this->conn = new PDO($dsn, $username, $password, $options);
     }
 
+	public function __descontruct()
+	{
+			unset($this->conn);	
+	}
     /**
      * Delete records from table.
      * Requires where method to call before this method in order to 
@@ -151,6 +155,12 @@ class PDOMySQL
      * 
      * @param   string      $query
      */
+	 
+	public function sql($sql)
+	{
+		return $this->execute($sql);
+	}
+	 
     private function execute($query)
     {
         if ($this->query_log)
@@ -184,7 +194,8 @@ class PDOMySQL
         }
         else
         {
-            return $statement->fetchAll(PDO::FETCH_OBJ);
+        //    return $statement->fetchAll(PDO::FETCH_OBJ);
+			return $statement->fetchAll(PDO::FETCH_ASSOC);
         }
     }
 
@@ -303,7 +314,7 @@ class PDOMySQL
      * @param   array       $data
      * @return  int
      */
-    public function insert($table, $data)
+    public function insert($table, $data,$insertid=false)
     {
         $query = 'INSERT INTO ' . $table;
 
@@ -317,7 +328,15 @@ class PDOMySQL
         $query .= ' (' . (implode(',', array_keys($record))) . ') VALUES(' . implode(',', array_values($record)) . ')';
 
         $this->last_query = $query;
-        return $this->execute($query);
+        $m = $this->execute($query);
+		if($insertid)
+		{
+				return $this->insert_id;
+			
+		}else{
+				return $m;
+			
+		}
     }
 
     /**
@@ -345,6 +364,11 @@ class PDOMySQL
         return $this;
     }
 
+	public function order($order)
+    {
+        $this->cfg_order = is_array($order) ? implode(",", $order) : $order;
+        return $this;
+    }
     /**
      * Prepares select query.
      * 
@@ -363,7 +387,12 @@ class PDOMySQL
             $this->factorizeWhere();
             $query .= ' WHERE ' . implode(' AND ', $this->cfg_where) . PHP_EOL;
         }
-
+		
+		if ($this->cfg_order !== NULL)
+        {
+            $query .=' ORDER BY ' . $this->cfg_order . PHP_EOL;
+        }
+		
         if ($this->cfg_limit !== NULL)
         {
             $query .=' LIMIT ' . $this->cfg_limit . PHP_EOL;
